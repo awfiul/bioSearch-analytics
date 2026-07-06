@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<BlastOutput>
+  <BlastOutput_program>blastp</BlastOutput_program>
+  <BlastOutput_version>BLASTP sample</BlastOutput_version>
+  <BlastOutput_reference>Sample file for parser tests.</BlastOutput_reference>
+  <BlastOutput_db>sample_db</BlastOutput_db>
+  <BlastOutput_query-ID>query_1</BlastOutput_query-ID>
+  <BlastOutput_query-def>query_1 sample protein</BlastOutput_query-def>
+  <BlastOutput_query-len>200</BlastOutput_query-len>
+  <BlastOutput_param>
+    <Parameters>
+      <Parameters_expect>10</Parameters_expect>
+    </Parameters>
+  </BlastOutput_param>
+  <BlastOutput_iterations>
+    <Iteration>
+      <Iteration_iter-num>1</Iteration_iter-num>
+      <Iteration_query-ID>query_1</Iteration_query-ID>
+      <Iteration_query-def>query_1 sample protein</Iteration_query-def>
+      <Iteration_query-len>200</Iteration_query-len>
+      <Iteration_hits>
+      </Iteration_hits>
+    </Iteration>
+  </BlastOutput_iterations>
+</BlastOutput>

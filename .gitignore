@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.streamlit/
+*.log
+*.tmp
+*.xlsx
+*.csv
+!data/examples/*.tsv
+!data/examples/*.csv
