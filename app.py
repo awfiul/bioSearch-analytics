@@ -8,6 +8,8 @@ from typing import BinaryIO
 
 import streamlit as st
 
+from src.parsers.blast_tabular_parser import BlastTabularParseError, parse_blast_tabular
+from src.parsers.blast_xml_parser import BlastXmlParseError, parse_blast_xml
 from src.parsers.format_detector import UnsupportedFormatError, detect_format
 
 
@@ -108,6 +110,34 @@ def render_format_detection(uploaded_file: BinaryIO) -> str | None:
     return detection.source_format
 
 
+def render_parsed_tabular_data(uploaded_file: BinaryIO) -> None:
+    """Parse BLAST tabular content and render a preview table."""
+    try:
+        df = parse_blast_tabular(uploaded_file)
+    except BlastTabularParseError as error:
+        st.error(str(error))
+        st.caption("Статус обработки: ошибка парсинга tabular-файла")
+        return
+
+    st.subheader("Таблица результатов")
+    st.success(f"Данные успешно прочитаны. Строк: {len(df)}.")
+    st.dataframe(df, use_container_width=True)
+
+
+def render_parsed_xml_data(uploaded_file: BinaryIO) -> None:
+    """Parse BLAST XML content and render a preview table."""
+    try:
+        df = parse_blast_xml(uploaded_file)
+    except BlastXmlParseError as error:
+        st.error(str(error))
+        st.caption("Статус обработки: ошибка парсинга XML-файла")
+        return
+
+    st.subheader("Таблица результатов")
+    st.success(f"XML успешно прочитан. Строк: {len(df)}.")
+    st.dataframe(df, use_container_width=True)
+
+
 def main() -> None:
     st.set_page_config(
         page_title="BLAST Results Analytics",
@@ -140,7 +170,13 @@ def main() -> None:
     if detected_format is None:
         return
 
-    st.warning("Парсинг данных будет добавлен на следующих этапах.")
+    if detected_format == "blast_tabular":
+        render_parsed_tabular_data(uploaded_file)
+        return
+
+    if detected_format == "blast_xml":
+        render_parsed_xml_data(uploaded_file)
+        return
 
 
 if __name__ == "__main__":
