@@ -2,7 +2,90 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from pathlib import Path
+from typing import BinaryIO
+
 import streamlit as st
+
+
+SUPPORTED_EXTENSIONS = {".xml", ".tsv", ".txt", ".tab"}
+
+
+@dataclass(frozen=True)
+class UploadedFileInfo:
+    """Basic metadata shown before parsing starts."""
+
+    name: str
+    size_bytes: int
+    extension: str
+
+
+def format_file_size(size_bytes: int) -> str:
+    """Return a compact human-readable file size."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+
+    size_kb = size_bytes / 1024
+    if size_kb < 1024:
+        return f"{size_kb:.2f} KB"
+
+    size_mb = size_kb / 1024
+    return f"{size_mb:.2f} MB"
+
+
+def get_file_extension(filename: str) -> str:
+    """Return the lowercase suffix used for upload validation."""
+    return Path(filename).suffix.lower()
+
+
+def get_uploaded_file_info(uploaded_file: BinaryIO) -> UploadedFileInfo:
+    """Extract metadata from a Streamlit uploaded file object."""
+    name = getattr(uploaded_file, "name", "")
+    size = int(getattr(uploaded_file, "size", 0) or 0)
+
+    return UploadedFileInfo(
+        name=name,
+        size_bytes=size,
+        extension=get_file_extension(name),
+    )
+
+
+def validate_uploaded_file(info: UploadedFileInfo) -> str | None:
+    """Return an error message for invalid uploads, otherwise None."""
+    if not info.name:
+        return "Не удалось определить имя файла."
+
+    if info.size_bytes <= 0:
+        return "Файл пустой. Загрузите непустой BLAST XML или tabular файл."
+
+    if info.extension not in SUPPORTED_EXTENSIONS:
+        allowed = ", ".join(sorted(SUPPORTED_EXTENSIONS))
+        return f"Неподдерживаемое расширение файла. Разрешены: {allowed}."
+
+    return None
+
+
+def render_uploaded_file_status(uploaded_file: BinaryIO) -> bool:
+    """Render upload metadata and return True when the file passes basic checks."""
+    info = get_uploaded_file_info(uploaded_file)
+    validation_error = validate_uploaded_file(info)
+
+    st.subheader("Загруженный файл")
+
+    col_name, col_size, col_ext = st.columns(3)
+    col_name.metric("Имя файла", info.name or "не определено")
+    col_size.metric("Размер", format_file_size(info.size_bytes))
+    col_ext.metric("Расширение", info.extension or "нет")
+
+    if validation_error:
+        st.error(validation_error)
+        st.caption("Статус обработки: ошибка загрузки")
+        return False
+
+    st.success("Файл загружен и прошел базовую проверку.")
+    st.caption("Статус обработки: готов к определению формата")
+    return True
 
 
 def main() -> None:
@@ -18,20 +101,22 @@ def main() -> None:
         "результатов поиска биологических последовательностей."
     )
 
-    uploaded_file = st.file_uploader(
-        "Загрузите BLAST XML или tabular файл",
-        type=["xml", "tsv", "txt", "tab"],
-    )
+    with st.sidebar:
+        st.header("Данные")
+        uploaded_file = st.file_uploader(
+            "Загрузите BLAST XML или tabular файл",
+            type=["xml", "tsv", "txt", "tab"],
+        )
 
     if uploaded_file is None:
         st.info("Файл пока не загружен. Поддерживаемые форматы: XML, TSV, TXT, TAB.")
         return
 
-    file_size_kb = uploaded_file.size / 1024
-    st.success("Файл загружен.")
-    st.write(f"Имя файла: `{uploaded_file.name}`")
-    st.write(f"Размер: `{file_size_kb:.2f} KB`")
-    st.warning("Парсинг и аналитика будут добавлены на следующих этапах.")
+    is_valid_upload = render_uploaded_file_status(uploaded_file)
+    if not is_valid_upload:
+        return
+
+    st.warning("Определение формата и парсинг будут добавлены на следующих этапах.")
 
 
 if __name__ == "__main__":
