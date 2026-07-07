@@ -8,6 +8,8 @@ from typing import BinaryIO
 
 import streamlit as st
 
+from src.parsers.format_detector import UnsupportedFormatError, detect_format
+
 
 SUPPORTED_EXTENSIONS = {".xml", ".tsv", ".txt", ".tab"}
 
@@ -88,6 +90,24 @@ def render_uploaded_file_status(uploaded_file: BinaryIO) -> bool:
     return True
 
 
+def render_format_detection(uploaded_file: BinaryIO) -> str | None:
+    """Render detected source format and return it when successful."""
+    content = uploaded_file.getvalue()
+
+    try:
+        detection = detect_format(uploaded_file.name, content)
+    except UnsupportedFormatError as error:
+        st.error(str(error))
+        st.caption("Статус обработки: формат не определен")
+        return None
+
+    st.subheader("Формат данных")
+    st.write(f"Определенный формат: `{detection.source_format}`")
+    st.caption(f"Причина: {detection.reason}")
+    st.caption("Статус обработки: формат определен")
+    return detection.source_format
+
+
 def main() -> None:
     st.set_page_config(
         page_title="BLAST Results Analytics",
@@ -116,7 +136,11 @@ def main() -> None:
     if not is_valid_upload:
         return
 
-    st.warning("Определение формата и парсинг будут добавлены на следующих этапах.")
+    detected_format = render_format_detection(uploaded_file)
+    if detected_format is None:
+        return
+
+    st.warning("Парсинг данных будет добавлен на следующих этапах.")
 
 
 if __name__ == "__main__":
