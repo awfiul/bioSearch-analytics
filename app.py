@@ -8,6 +8,7 @@ from typing import BinaryIO
 
 import streamlit as st
 
+from src.analysis.statistics import calculate_summary, format_metric_value
 from src.parsers.blast_tabular_parser import BlastTabularParseError, parse_blast_tabular
 from src.parsers.blast_xml_parser import BlastXmlParseError, parse_blast_xml
 from src.parsers.format_detector import UnsupportedFormatError, detect_format
@@ -121,6 +122,7 @@ def render_parsed_tabular_data(uploaded_file: BinaryIO) -> None:
 
     st.subheader("Таблица результатов")
     st.success(f"Данные успешно прочитаны. Строк: {len(df)}.")
+    render_summary(df)
     st.dataframe(df, use_container_width=True)
 
 
@@ -135,7 +137,35 @@ def render_parsed_xml_data(uploaded_file: BinaryIO) -> None:
 
     st.subheader("Таблица результатов")
     st.success(f"XML успешно прочитан. Строк: {len(df)}.")
+    render_summary(df)
     st.dataframe(df, use_container_width=True)
+
+
+def render_summary(df) -> None:
+    """Render summary statistics for parsed BLAST hits."""
+    summary = calculate_summary(df)
+
+    st.subheader("Сводная статистика")
+
+    first_row = st.columns(4)
+    first_row[0].metric("Всего совпадений", format_metric_value(summary["total_hits"]))
+    first_row[1].metric("Уникальных query", format_metric_value(summary["unique_queries"]))
+    first_row[2].metric("Уникальных hit", format_metric_value(summary["unique_hits"]))
+    first_row[3].metric("Лучший E-value", format_metric_value(summary["min_evalue"]))
+
+    second_row = st.columns(3)
+    second_row[0].metric(
+        "Максимальный bitscore",
+        format_metric_value(summary["max_bitscore"]),
+    )
+    second_row[1].metric(
+        "Средний identity",
+        format_metric_value(summary["mean_identity_percent"], "%"),
+    )
+    second_row[2].metric(
+        "Средняя длина",
+        format_metric_value(summary["mean_alignment_length"]),
+    )
 
 
 def main() -> None:
