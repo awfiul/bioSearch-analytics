@@ -57,3 +57,22 @@ def test_generate_html_report_contains_escaped_content() -> None:
     assert "2026-07-09 12:00:00" in html
     assert "hypothetical &lt;protein&gt;" in html
     assert "Test conclusion" in html
+
+
+def test_exporters_handle_empty_dataframe() -> None:
+    df = pd.DataFrame()
+
+    csv_bytes = dataframe_to_csv_bytes(df)
+    excel_bytes = dataframe_to_excel_bytes(df)
+    html = generate_html_report(
+        original_df=df,
+        filtered_df=df,
+        filters={},
+        summary={},
+        conclusions=[],
+        filename=None,
+    )
+
+    assert csv_bytes == b"\xef\xbb\xbf\r\n"
+    assert pd.read_excel(BytesIO(excel_bytes)).empty
+    assert "Выводы не сформированы" in html

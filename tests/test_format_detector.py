@@ -39,6 +39,11 @@ def test_detect_format_rejects_unknown_content() -> None:
         detect_format("notes.txt", b"not a blast file")
 
 
+def test_detect_format_rejects_empty_content() -> None:
+    with pytest.raises(UnsupportedFormatError):
+        detect_format("empty.tsv", b"")
+
+
 def test_looks_like_blast_xml_is_case_insensitive() -> None:
     assert looks_like_blast_xml("<blastoutput></blastoutput>")
 

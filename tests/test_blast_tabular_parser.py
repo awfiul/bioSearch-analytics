@@ -62,6 +62,18 @@ def test_parse_blast_tabular_rejects_empty_content() -> None:
         parse_blast_tabular(b"qseqid\tsseqid\n")
 
 
+def test_parse_blast_tabular_rejects_fully_empty_content() -> None:
+    with pytest.raises(BlastTabularParseError):
+        parse_blast_tabular(b"")
+
+
+def test_parse_blast_tabular_rejects_missing_standard_columns() -> None:
+    content = b"query_1\thit_1\t99.0\t100\n"
+
+    with pytest.raises(BlastTabularParseError):
+        parse_blast_tabular(content)
+
+
 def test_parse_blast_tabular_numeric_errors_become_nan() -> None:
     content = (
         "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\t"

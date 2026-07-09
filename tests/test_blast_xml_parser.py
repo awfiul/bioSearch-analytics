@@ -88,6 +88,11 @@ def test_parse_blast_xml_rejects_invalid_xml() -> None:
         parse_blast_xml(b"not xml")
 
 
+def test_parse_blast_xml_rejects_empty_content() -> None:
+    with pytest.raises(BlastXmlParseError):
+        parse_blast_xml(b"")
+
+
 def test_parse_blast_xml_empty_values_are_nan() -> None:
     df = parse_blast_xml(Path("data/examples/sample_blast.xml"))
 

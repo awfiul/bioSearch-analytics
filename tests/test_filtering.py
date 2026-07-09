@@ -69,3 +69,19 @@ def test_apply_filters_combines_filters_before_top_n() -> None:
     )
 
     assert result["hit_id"].tolist() == ["hit_alpha", "hit_beta"]
+
+
+def test_apply_filters_handles_missing_columns_without_crashing() -> None:
+    df = pd.DataFrame({"query_id": ["query_1"], "hit_id": ["hit_1"]})
+
+    result = apply_filters(
+        df,
+        max_evalue=1e-5,
+        min_identity=70,
+        min_bitscore=100,
+        min_alignment_length=50,
+        search_text="hit_1",
+        top_n=10,
+    )
+
+    assert result["hit_id"].tolist() == ["hit_1"]

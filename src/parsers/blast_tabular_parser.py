@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 import pandas as pd
+from pandas.errors import EmptyDataError
 
 from src.parsers.schema import ensure_unified_schema
 
@@ -31,7 +32,13 @@ class BlastTabularParseError(ValueError):
 
 def parse_blast_tabular(file: str | Path | bytes | BinaryIO) -> pd.DataFrame:
     """Parse BLAST tabular output into the unified DataFrame schema."""
-    raw_df = _read_tabular(file)
+    try:
+        raw_df = _read_tabular(file)
+    except EmptyDataError as error:
+        raise BlastTabularParseError(
+            "BLAST tabular файл не содержит строк с результатами."
+        ) from error
+
     if raw_df.empty:
         raise BlastTabularParseError("BLAST tabular файл не содержит строк с результатами.")
 
@@ -113,4 +120,3 @@ def _normalize_raw_columns(raw_df: pd.DataFrame) -> pd.DataFrame:
     normalized_df = raw_df.iloc[:, : len(STANDARD_BLAST_COLUMNS)].copy()
     normalized_df.columns = STANDARD_BLAST_COLUMNS
     return normalized_df.reset_index(drop=True)
-
