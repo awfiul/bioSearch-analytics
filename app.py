@@ -16,6 +16,9 @@ from src.analysis.research import (
     generate_research_conclusions,
 )
 from src.analysis.statistics import calculate_summary, format_metric_value
+from src.export.csv_exporter import dataframe_to_csv_bytes
+from src.export.excel_exporter import dataframe_to_excel_bytes
+from src.export.html_report import generate_html_report
 from src.parsers.blast_tabular_parser import BlastTabularParseError, parse_blast_tabular
 from src.parsers.blast_xml_parser import BlastXmlParseError, parse_blast_xml
 from src.parsers.format_detector import UnsupportedFormatError, detect_format
@@ -173,6 +176,12 @@ def render_results(df, success_message: str) -> None:
         st.warning("После применения фильтров не осталось строк.")
     render_charts(df, filtered_df)
     render_research_analysis(df)
+    render_export_controls(
+        original_df=df,
+        filtered_df=filtered_df,
+        filters=filters,
+        filename=st.session_state.get("uploaded_filename"),
+    )
     st.dataframe(display_df, use_container_width=True)
 
 
@@ -268,6 +277,42 @@ def render_research_analysis(df) -> None:
     st.write("Краткие выводы:")
     for conclusion in conclusions:
         st.markdown(f"- {conclusion}")
+
+
+def render_export_controls(original_df, filtered_df, filters: dict, filename: str | None) -> None:
+    """Render download buttons for filtered data and HTML report."""
+    st.subheader("Экспорт")
+
+    summary = calculate_summary(filtered_df)
+    conclusions = generate_research_conclusions(original_df)
+    html_report = generate_html_report(
+        original_df=original_df,
+        filtered_df=filtered_df,
+        filters=filters,
+        summary=summary,
+        conclusions=conclusions,
+        filename=filename,
+    )
+
+    csv_col, excel_col, html_col = st.columns(3)
+    csv_col.download_button(
+        "Скачать CSV",
+        data=dataframe_to_csv_bytes(filtered_df),
+        file_name="filtered_blast_results.csv",
+        mime="text/csv",
+    )
+    excel_col.download_button(
+        "Скачать Excel",
+        data=dataframe_to_excel_bytes(filtered_df),
+        file_name="filtered_blast_results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    html_col.download_button(
+        "Скачать HTML-отчет",
+        data=html_report.encode("utf-8"),
+        file_name="blast_analysis_report.html",
+        mime="text/html",
+    )
 
 
 def render_filter_controls() -> dict:
@@ -403,6 +448,8 @@ def main() -> None:
     if uploaded_file is None:
         st.info("Файл пока не загружен. Поддерживаемые форматы: XML, TSV, TXT, TAB.")
         return
+
+    st.session_state["uploaded_filename"] = uploaded_file.name
 
     is_valid_upload = render_uploaded_file_status(uploaded_file)
     if not is_valid_upload:
