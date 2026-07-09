@@ -20,6 +20,22 @@ def calculate_summary(df: pd.DataFrame) -> dict:
     }
 
 
+def calculate_correlations(df: pd.DataFrame) -> dict:
+    """Calculate correlations used by the research section."""
+    from src.analysis.research import calculate_correlations as _calculate_correlations
+
+    return _calculate_correlations(df)
+
+
+def calculate_threshold_effect(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate E-value threshold effect used by the research section."""
+    from src.analysis.research import (
+        calculate_threshold_effect as _calculate_threshold_effect,
+    )
+
+    return _calculate_threshold_effect(df)
+
+
 def format_metric_value(value: int | float | None, suffix: str = "") -> str:
     """Format summary values for Streamlit metric cards."""
     if value is None or (isinstance(value, float) and math.isnan(value)):

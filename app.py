@@ -9,6 +9,12 @@ from typing import BinaryIO
 import streamlit as st
 
 from src.analysis.filtering import apply_filters
+from src.analysis.research import (
+    calculate_correlations,
+    calculate_filtering_efficiency,
+    calculate_threshold_effect,
+    generate_research_conclusions,
+)
 from src.analysis.statistics import calculate_summary, format_metric_value
 from src.parsers.blast_tabular_parser import BlastTabularParseError, parse_blast_tabular
 from src.parsers.blast_xml_parser import BlastXmlParseError, parse_blast_xml
@@ -166,6 +172,7 @@ def render_results(df, success_message: str) -> None:
     if filtered_df.empty:
         st.warning("После применения фильтров не осталось строк.")
     render_charts(df, filtered_df)
+    render_research_analysis(df)
     st.dataframe(display_df, use_container_width=True)
 
 
@@ -215,6 +222,52 @@ def render_charts(original_df, filtered_df) -> None:
             plot_before_after_filtering(len(original_df), len(filtered_df)),
             use_container_width=True,
         )
+
+
+def render_research_analysis(df) -> None:
+    """Render the research-analysis section."""
+    st.subheader("Исследовательский анализ")
+
+    threshold_effect = calculate_threshold_effect(df)
+    correlations = calculate_correlations(df)
+    filtering_efficiency = calculate_filtering_efficiency(df)
+    conclusions = generate_research_conclusions(df)
+
+    correlation_cols = st.columns(2)
+    correlation_cols[0].metric(
+        "Корреляция bitscore / identity",
+        format_metric_value(correlations["bitscore_identity_correlation"]),
+    )
+    correlation_cols[1].metric(
+        "Корреляция length / bitscore",
+        format_metric_value(correlations["alignment_length_bitscore_correlation"]),
+    )
+
+    efficiency_cols = st.columns(3)
+    efficiency_cols[0].metric(
+        "После исслед. фильтра",
+        format_metric_value(filtering_efficiency["filtered_count"]),
+    )
+    efficiency_cols[1].metric(
+        "Удалено строк",
+        format_metric_value(filtering_efficiency["removed_count"]),
+    )
+    efficiency_cols[2].metric(
+        "Удалено, %",
+        format_metric_value(filtering_efficiency["removed_percent"], "%"),
+    )
+
+    with st.expander("Таблица влияния E-value threshold"):
+        st.dataframe(
+            threshold_effect.rename(
+                columns={"threshold": "E-value threshold", "count": "Count"}
+            ),
+            use_container_width=True,
+        )
+
+    st.write("Краткие выводы:")
+    for conclusion in conclusions:
+        st.markdown(f"- {conclusion}")
 
 
 def render_filter_controls() -> dict:
