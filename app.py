@@ -39,6 +39,7 @@ from src.visualization.charts import (
 
 
 SUPPORTED_EXTENSIONS = {".xml", ".tsv", ".txt", ".tab"}
+UPLOAD_FILE_TYPES = ["xml", "tsv", "txt", "tab"]
 
 
 @dataclass(frozen=True)
@@ -425,6 +426,49 @@ def _calculate_percent(value: int, total: int) -> float | None:
     return value / total * 100
 
 
+def select_uploaded_file(sidebar_file, main_file):
+    """Return the file selected by the user, preferring the sidebar uploader."""
+    return sidebar_file or main_file
+
+
+def render_start_page() -> None:
+    """Render introductory information before a BLAST file is uploaded."""
+    st.info("Загрузите BLAST XML или tabular-файл, чтобы начать анализ.")
+
+    overview_cols = st.columns(3)
+    overview_cols[0].subheader("1. Загрузка")
+    overview_cols[0].write(
+        "Файл можно загрузить в левой панели или в блоке ниже. "
+        "Поддерживаются XML, TSV, TXT и TAB."
+    )
+    overview_cols[1].subheader("2. Анализ")
+    overview_cols[1].write(
+        "После загрузки приложение определит формат, распарсит данные, "
+        "покажет статистику, таблицу, фильтры и графики."
+    )
+    overview_cols[2].subheader("3. Экспорт")
+    overview_cols[2].write(
+        "Отфильтрованные результаты можно скачать в CSV, Excel или HTML-отчете."
+    )
+
+    st.subheader("Что находится в интерфейсе")
+    st.markdown(
+        """
+- **Левая панель**: загрузка файла, фильтры и выбор колонок таблицы.
+- **Сводная статистика**: количество совпадений, лучший E-value, максимальный bitscore и средние значения.
+- **Визуализации**: распределения, top hits, scatter plots и влияние порога E-value.
+- **Исследовательский анализ**: корреляции, эффективность фильтрации и краткие выводы.
+- **Экспорт**: скачивание отфильтрованных данных и HTML-отчета.
+"""
+    )
+
+    st.subheader("Быстрая проверка")
+    st.write(
+        "Для демонстрации можно использовать файлы "
+        "`data/examples/sample_blast.tsv` и `data/examples/sample_blast.xml`."
+    )
+
+
 def main() -> None:
     st.set_page_config(
         page_title="BLAST Results Analytics",
@@ -440,10 +484,22 @@ def main() -> None:
 
     with st.sidebar:
         st.header("Данные")
-        uploaded_file = st.file_uploader(
+        sidebar_uploaded_file = st.file_uploader(
             "Загрузите BLAST XML или tabular файл",
-            type=["xml", "tsv", "txt", "tab"],
+            type=UPLOAD_FILE_TYPES,
+            key="sidebar_file_uploader",
         )
+
+    render_start_page()
+
+    st.subheader("Загрузка файла")
+    main_uploaded_file = st.file_uploader(
+        "Выберите BLAST XML или tabular файл",
+        type=UPLOAD_FILE_TYPES,
+        key="main_file_uploader",
+    )
+
+    uploaded_file = select_uploaded_file(sidebar_uploaded_file, main_uploaded_file)
 
     if uploaded_file is None:
         st.info("Файл пока не загружен. Поддерживаемые форматы: XML, TSV, TXT, TAB.")
