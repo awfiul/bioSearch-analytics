@@ -8,6 +8,7 @@ from typing import BinaryIO
 
 import streamlit as st
 
+from src.analysis.filtering import apply_filters
 from src.analysis.statistics import calculate_summary, format_metric_value
 from src.parsers.blast_tabular_parser import BlastTabularParseError, parse_blast_tabular
 from src.parsers.blast_xml_parser import BlastXmlParseError, parse_blast_xml
@@ -120,10 +121,7 @@ def render_parsed_tabular_data(uploaded_file: BinaryIO) -> None:
         st.caption("Статус обработки: ошибка парсинга tabular-файла")
         return
 
-    st.subheader("Таблица результатов")
-    st.success(f"Данные успешно прочитаны. Строк: {len(df)}.")
-    render_summary(df)
-    st.dataframe(df, use_container_width=True)
+    render_results(df, "Данные успешно прочитаны.")
 
 
 def render_parsed_xml_data(uploaded_file: BinaryIO) -> None:
@@ -135,13 +133,73 @@ def render_parsed_xml_data(uploaded_file: BinaryIO) -> None:
         st.caption("Статус обработки: ошибка парсинга XML-файла")
         return
 
+    render_results(df, "XML успешно прочитан.")
+
+
+def render_results(df, success_message: str) -> None:
+    """Render filters, summary, and results table for parsed BLAST data."""
+    filters = render_filter_controls()
+    filtered_df = apply_filters(df, **filters)
+
     st.subheader("Таблица результатов")
-    st.success(f"XML успешно прочитан. Строк: {len(df)}.")
-    render_summary(df)
-    st.dataframe(df, use_container_width=True)
+    st.success(
+        f"{success_message} Строк до фильтрации: {len(df)}. "
+        f"После фильтрации: {len(filtered_df)}."
+    )
+    render_summary(filtered_df, total_rows=len(df))
+    st.dataframe(filtered_df, use_container_width=True)
 
 
-def render_summary(df) -> None:
+def render_filter_controls() -> dict:
+    """Render sidebar filters and return values for apply_filters."""
+    with st.sidebar:
+        st.header("Фильтры")
+
+        evalue_options = {
+            "Без фильтра": None,
+            "1": 1.0,
+            "1e-1": 1e-1,
+            "1e-3": 1e-3,
+            "1e-5": 1e-5,
+            "1e-10": 1e-10,
+            "1e-20": 1e-20,
+            "1e-50": 1e-50,
+        }
+        selected_evalue = st.selectbox(
+            "E-value <= ",
+            options=list(evalue_options.keys()),
+        )
+        min_identity = st.slider("Identity >= %", 0, 100, 0, 1)
+        min_bitscore = st.number_input("Bitscore >=", min_value=0.0, value=0.0)
+        min_alignment_length = st.number_input(
+            "Alignment length >=",
+            min_value=0,
+            value=0,
+            step=1,
+        )
+        top_n_options = {
+            "Все результаты": None,
+            "Top 10": 10,
+            "Top 20": 20,
+            "Top 50": 50,
+            "Top 100": 100,
+        }
+        selected_top_n = st.selectbox("Top N по bitscore", list(top_n_options.keys()))
+        search_text = st.text_input("Поиск по query, hit или описанию")
+
+    return {
+        "max_evalue": evalue_options[selected_evalue],
+        "min_identity": min_identity if min_identity > 0 else None,
+        "min_bitscore": min_bitscore if min_bitscore > 0 else None,
+        "min_alignment_length": (
+            min_alignment_length if min_alignment_length > 0 else None
+        ),
+        "search_text": search_text,
+        "top_n": top_n_options[selected_top_n],
+    }
+
+
+def render_summary(df, total_rows: int | None = None) -> None:
     """Render summary statistics for parsed BLAST hits."""
     summary = calculate_summary(df)
 
@@ -166,6 +224,18 @@ def render_summary(df) -> None:
         "Средняя длина",
         format_metric_value(summary["mean_alignment_length"]),
     )
+
+    if total_rows is not None:
+        st.caption(
+            f"После фильтрации: {len(df)} из {total_rows} "
+            f"({format_metric_value(_calculate_percent(len(df), total_rows), '%')})."
+        )
+
+
+def _calculate_percent(value: int, total: int) -> float | None:
+    if total <= 0:
+        return None
+    return value / total * 100
 
 
 def main() -> None:
