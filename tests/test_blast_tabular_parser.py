@@ -5,9 +5,9 @@ import pytest
 
 from src.parsers.blast_tabular_parser import (
     BlastTabularParseError,
-    UNIFIED_COLUMNS,
     parse_blast_tabular,
 )
+from src.parsers.schema import UNIFIED_COLUMNS
 
 
 def test_parse_blast_tabular_with_header_returns_unified_columns() -> None:

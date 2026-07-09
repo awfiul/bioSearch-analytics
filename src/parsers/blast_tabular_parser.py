@@ -8,6 +8,7 @@ from typing import BinaryIO
 
 import pandas as pd
 
+from src.parsers.schema import ensure_unified_schema
 
 STANDARD_BLAST_COLUMNS = [
     "qseqid",
@@ -23,39 +24,6 @@ STANDARD_BLAST_COLUMNS = [
     "evalue",
     "bitscore",
 ]
-
-UNIFIED_COLUMNS = [
-    "query_id",
-    "hit_id",
-    "hit_description",
-    "evalue",
-    "bitscore",
-    "score",
-    "identity_percent",
-    "alignment_length",
-    "query_start",
-    "query_end",
-    "hit_start",
-    "hit_end",
-    "gaps",
-    "coverage",
-    "source_format",
-]
-
-NUMERIC_COLUMNS = [
-    "evalue",
-    "bitscore",
-    "score",
-    "identity_percent",
-    "alignment_length",
-    "query_start",
-    "query_end",
-    "hit_start",
-    "hit_end",
-    "gaps",
-    "coverage",
-]
-
 
 class BlastTabularParseError(ValueError):
     """Raised when BLAST tabular content cannot be parsed."""
@@ -88,7 +56,7 @@ def parse_blast_tabular(file: str | Path | bytes | BinaryIO) -> pd.DataFrame:
         }
     )
 
-    return _coerce_numeric_columns(unified_df)
+    return ensure_unified_schema(unified_df)
 
 
 def _read_tabular(file: str | Path | bytes | BinaryIO) -> pd.DataFrame:
@@ -146,9 +114,3 @@ def _normalize_raw_columns(raw_df: pd.DataFrame) -> pd.DataFrame:
     normalized_df.columns = STANDARD_BLAST_COLUMNS
     return normalized_df.reset_index(drop=True)
 
-
-def _coerce_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
-    result = df.copy()
-    for column in NUMERIC_COLUMNS:
-        result[column] = pd.to_numeric(result[column], errors="coerce")
-    return result[UNIFIED_COLUMNS].reset_index(drop=True)

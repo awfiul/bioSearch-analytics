@@ -9,7 +9,7 @@ from typing import BinaryIO
 from Bio.Blast import NCBIXML
 import pandas as pd
 
-from src.parsers.blast_tabular_parser import UNIFIED_COLUMNS
+from src.parsers.schema import ensure_unified_schema
 
 
 NUMERIC_COLUMNS = [
@@ -120,25 +120,7 @@ def _build_dataframe(rows: list[dict]) -> pd.DataFrame:
     for column in NUMERIC_COLUMNS:
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
-    return df[
-        [
-            "query_id",
-            "hit_id",
-            "hit_description",
-            "evalue",
-            "bitscore",
-            "score",
-            "identity_percent",
-            "alignment_length",
-            "query_start",
-            "query_end",
-            "hit_start",
-            "hit_end",
-            "gaps",
-            "coverage",
-            "source_format",
-        ]
-    ].reindex(columns=UNIFIED_COLUMNS)
+    return ensure_unified_schema(df)
 
 
 def _calculate_identity_percent(identity: int | None, alignment_length: int | None) -> float | None:

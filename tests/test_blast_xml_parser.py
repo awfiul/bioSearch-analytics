@@ -7,7 +7,7 @@ from src.parsers.blast_xml_parser import (
     BlastXmlParseError,
     parse_blast_xml,
 )
-from src.parsers.blast_tabular_parser import UNIFIED_COLUMNS
+from src.parsers.schema import UNIFIED_COLUMNS
 
 
 def test_parse_blast_xml_returns_unified_columns() -> None:
