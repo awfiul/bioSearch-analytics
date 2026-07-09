@@ -13,6 +13,11 @@ from src.analysis.statistics import calculate_summary, format_metric_value
 from src.parsers.blast_tabular_parser import BlastTabularParseError, parse_blast_tabular
 from src.parsers.blast_xml_parser import BlastXmlParseError, parse_blast_xml
 from src.parsers.format_detector import UnsupportedFormatError, detect_format
+from src.utils.table_display import (
+    COLUMN_LABELS,
+    get_default_display_columns,
+    prepare_display_table,
+)
 
 
 SUPPORTED_EXTENSIONS = {".xml", ".tsv", ".txt", ".tab"}
@@ -140,6 +145,8 @@ def render_results(df, success_message: str) -> None:
     """Render filters, summary, and results table for parsed BLAST data."""
     filters = render_filter_controls()
     filtered_df = apply_filters(df, **filters)
+    selected_columns = render_table_controls(filtered_df)
+    display_df = prepare_display_table(filtered_df, selected_columns)
 
     st.subheader("Таблица результатов")
     st.success(
@@ -147,7 +154,9 @@ def render_results(df, success_message: str) -> None:
         f"После фильтрации: {len(filtered_df)}."
     )
     render_summary(filtered_df, total_rows=len(df))
-    st.dataframe(filtered_df, use_container_width=True)
+    if filtered_df.empty:
+        st.warning("После применения фильтров не осталось строк.")
+    st.dataframe(display_df, use_container_width=True)
 
 
 def render_filter_controls() -> dict:
@@ -197,6 +206,28 @@ def render_filter_controls() -> dict:
         "search_text": search_text,
         "top_n": top_n_options[selected_top_n],
     }
+
+
+def render_table_controls(df) -> list[str]:
+    """Render sidebar controls for table column visibility."""
+    available_columns = list(df.columns)
+    default_columns = get_default_display_columns(available_columns)
+    label_to_column = {
+        COLUMN_LABELS.get(column, column): column for column in available_columns
+    }
+    default_labels = [
+        COLUMN_LABELS.get(column, column) for column in default_columns
+    ]
+
+    with st.sidebar:
+        st.header("Таблица")
+        selected_labels = st.multiselect(
+            "Отображаемые колонки",
+            options=list(label_to_column.keys()),
+            default=default_labels,
+        )
+
+    return [label_to_column[label] for label in selected_labels]
 
 
 def render_summary(df, total_rows: int | None = None) -> None:
