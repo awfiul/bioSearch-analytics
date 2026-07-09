@@ -18,6 +18,15 @@ from src.utils.table_display import (
     get_default_display_columns,
     prepare_display_table,
 )
+from src.visualization.charts import (
+    plot_alignment_length_vs_bitscore,
+    plot_before_after_filtering,
+    plot_evalue_distribution,
+    plot_evalue_threshold_effect,
+    plot_identity_distribution,
+    plot_identity_vs_bitscore,
+    plot_top_hits_by_bitscore,
+)
 
 
 SUPPORTED_EXTENSIONS = {".xml", ".tsv", ".txt", ".tab"}
@@ -156,7 +165,56 @@ def render_results(df, success_message: str) -> None:
     render_summary(filtered_df, total_rows=len(df))
     if filtered_df.empty:
         st.warning("После применения фильтров не осталось строк.")
+    render_charts(df, filtered_df)
     st.dataframe(display_df, use_container_width=True)
+
+
+def render_charts(original_df, filtered_df) -> None:
+    """Render Plotly charts for the filtered BLAST results."""
+    st.subheader("Визуализации")
+
+    distribution_tab, top_tab, scatter_tab, thresholds_tab = st.tabs(
+        ["Распределения", "Top hits", "Scatter plots", "Пороги"]
+    )
+
+    with distribution_tab:
+        col_evalue, col_identity = st.columns(2)
+        col_evalue.plotly_chart(
+            plot_evalue_distribution(filtered_df),
+            use_container_width=True,
+        )
+        col_identity.plotly_chart(
+            plot_identity_distribution(filtered_df),
+            use_container_width=True,
+        )
+
+    with top_tab:
+        st.plotly_chart(
+            plot_top_hits_by_bitscore(filtered_df),
+            use_container_width=True,
+        )
+
+    with scatter_tab:
+        col_identity_score, col_length_score = st.columns(2)
+        col_identity_score.plotly_chart(
+            plot_identity_vs_bitscore(filtered_df),
+            use_container_width=True,
+        )
+        col_length_score.plotly_chart(
+            plot_alignment_length_vs_bitscore(filtered_df),
+            use_container_width=True,
+        )
+
+    with thresholds_tab:
+        col_thresholds, col_filtering = st.columns(2)
+        col_thresholds.plotly_chart(
+            plot_evalue_threshold_effect(original_df),
+            use_container_width=True,
+        )
+        col_filtering.plotly_chart(
+            plot_before_after_filtering(len(original_df), len(filtered_df)),
+            use_container_width=True,
+        )
 
 
 def render_filter_controls() -> dict:
